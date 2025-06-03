@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="account_move_form_fel_ecofacturas">
+            <field name="name">account.move.form.fel_ecofacturas</field>
+            <field name="model">account.move</field>
+            <field name="inherit_id" ref="fel_gt.invoice_form_fel_gt"/>
+            <field name="arch" type="xml">
+                <data>
+                    <field name="resultado_xml_fel" position="after">
+                        <field name="pdf_fel_name" invisible="1"/>
+                        <field name="pdf_fel" readonly="1" filename="pdf_fel_name"/>
+                    </field>
+                </data>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="journal_form_gface_ecofacturas">
+            <field name="name">account.journal.form.gface_ecofacturas</field>
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="fel_gt.journal_form_fel_gt"/>
+            <field name="arch" type="xml">
+                <data>
+                </data>
+            </field>
+        </record>
+        
+        <record id="view_company_form_fel_ecofacturas" model="ir.ui.view">
+            <field name="name">res.company.form.fel_infile</field>
+            <field name="model">res.company</field>
+            <field name="inherit_id" ref="fel_gt.view_company_form_fel_gt"/>
+            <field name="arch" type="xml">
+                <data>
+                    <field name="frases_fel" position="replace">
+                        <field name="usuario_fel"/>
+                        <field name="clave_fel"/>
+                        <field name="pruebas_fel"/>
+                        <field name="trncampad01_fel"/>
+                        <field name="trncampad02_fel"/>
+                        <field name="trncampad03_fel"/>
+                        <field name="trncampad04_fel"/>
+                        <field name="trncampad05_fel"/>
+                        <field name="trncampad06_fel"/>
+                    </field>
+                    <field name="adenda_fel" position="replace">
+                    </field>
+                </data>
+            </field>
+        </record>
+
+    </data>
+</openerp>
