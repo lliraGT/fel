@@ -25,6 +25,47 @@ class AccountMove(models.Model):
         if self.certificar():
             return super(AccountMove, self).post()
     
+    def get_fel_compliant_uom(self, uom_name):
+        """
+        Convert UoM names to FEL-compliant format (minimum 3 characters)
+        Required by Guatemala's SAT FEL validation
+        """
+        if not uom_name:
+            return 'UNI'
+        
+        # If already 3+ characters, return as-is
+        if len(uom_name) >= 3:
+            return uom_name
+        
+        # Common UoM mappings for Guatemala FEL compliance
+        uom_mapping = {
+            'Kg': 'KGS',  # Kilograms
+            'kg': 'KGS',
+            'g': 'GRM',   # Grams
+            'L': 'LTR',   # Liters
+            'l': 'LTR',
+            'ml': 'MLT',  # Milliliters
+            'cm': 'CMT',  # Centimeters
+            'mm': 'MMT',  # Millimeters
+            'm': 'MTR',   # Meters
+            'km': 'KMT',  # Kilometers
+            'oz': 'ONZ',  # Ounces
+            'lb': 'LBR',  # Pounds
+            'ft': 'FTT',  # Feet
+            'in': 'INC',  # Inches
+            'u': 'UNI',   # Units
+        }
+        
+        # Try exact mapping first
+        if uom_name in uom_mapping:
+            return uom_mapping[uom_name]
+        
+        # If no mapping found, pad with zeros to meet minimum length
+        padded_uom = uom_name.upper().ljust(3, '0')
+        
+        # Ensure it doesn't exceed reasonable length
+        return padded_uom[:10]  # Max 10 characters
+    
     def certificar(self):
         for factura in self:
             if factura.requiere_certificacion():
@@ -163,7 +204,9 @@ class AccountMove(models.Model):
                     TrnVUn = etree.SubElement(stdTWSDIt, "TrnVUn")
                     TrnVUn.text = '{:.6f}'.format(precio_unitario)
                     TrnUniMed = etree.SubElement(stdTWSDIt, "TrnUniMed")
-                    TrnUniMed.text = linea.product_uom_id.name if linea.product_uom_id else "UNIDAD"
+                    # TrnUniMed.text = linea.product_uom_id.name if linea.product_uom_id else "UNIDAD"
+                    uom_name = linea.product_uom_id.name if linea.product_uom_id else "UNIDAD"
+                    TrnUniMed.text = self.get_fel_compliant_uom(uom_name)
                     TrnVDes = etree.SubElement(stdTWSDIt, "TrnVDes")
                     TrnVDes.text = '{:.2f}'.format((precio_unitario * linea.quantity) *  ( linea.discount / 100 ))
                     TrnArtBienSer = etree.SubElement(stdTWSDIt, "TrnArtBienSer")
