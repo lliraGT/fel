@@ -1,0 +1,30 @@
+# -*- encoding: utf-8 -*-
+{
+    'name': 'Guatemala - reportes y funcionalidad extra',
+    'version': '4.0',
+    'category': 'Accounting/Localizations/Reporting',
+    'description': """ Reportes requeridos por la SAT y otra funcionalidad extra para llevar un contabilidad en Guatemala. """,
+    'author': 'aquíH',
+    'website': 'http://aquih.com/',
+    'depends': ['l10n_gt', 'account_tax_python', 'product'],
+    'data': [
+        'views/account_view.xml',
+        'views/res_partner_view.xml',
+        'views/res_company_view.xml',
+        'views/product_views.xml',
+        'views/report.xml',
+        'views/reporte_banco.xml',
+        'views/reporte_partida.xml',
+        'views/reporte_compras.xml',
+        'views/reporte_ventas.xml',
+        'views/reporte_inventario.xml',
+        'views/reporte_diario.xml',
+        'views/reporte_mayor.xml',
+        'security/ir.model.access.csv',
+    ],
+    'demo': [],
+    'installable': True,
+    'license': 'Other OSI approved licence',
+    'post_init_hook': '_update_gt_taxes',
+}
+# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

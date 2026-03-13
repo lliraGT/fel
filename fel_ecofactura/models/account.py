@@ -8,6 +8,7 @@ from lxml import etree
 import base64
 import logging
 import zeep
+import re
 
 class AccountMove(models.Model):
     _inherit = "account.move"
@@ -24,6 +25,19 @@ class AccountMove(models.Model):
     def post(self):
         if self.certificar():
             return super(AccountMove, self).post()
+    
+    def sanitize_xml_text(self, text):
+        """Escapa caracteres especiales para XML"""
+        if not text:
+            return text
+        text = str(text)
+        # Escapar caracteres especiales de XML
+        text = text.replace('&', '&amp;')
+        text = text.replace('<', '&lt;')
+        text = text.replace('>', '&gt;')
+        text = text.replace('"', '&quot;')
+        text = text.replace("'", '&apos;')
+        return text
     
     def get_fel_compliant_uom(self, uom_name):
         """
@@ -88,14 +102,14 @@ class AccountMove(models.Model):
                 tipo_receptor = '1'
                 
                 if factura.partner_id.vat:
-                    nit_receptor = factura.partner_id.vat.replace('-','')
+                    nit_receptor = factura.partner_id.vat.replace('-','').upper()
                 if factura.partner_id.nit_facturacion_fel:
-                    nit_receptor = factura.partner_id.nit_facturacion_fel.replace('-','')
+                    nit_receptor = factura.partner_id.nit_facturacion_fel.replace('-','').upper()
                     
                 if len(nit_receptor) > 10:
                     tipo_receptor = '2'
                 if tipo_documento_fel == "FESP" and factura.partner_id.cui:
-                    nit_receptor = factura.partner_id.cui
+                    nit_receptor = factura.partner_id.cui.upper()
                     tipo_receptor = '2'
                 if tipo_documento_fel in ["FESP", "FACT", "FCAM", "NCRE", "NDEB", "NABN"] and factura.partner_id.country_id and factura.partner_id.country_id.code != 'GT':
                     tipo_receptor = '3'
@@ -129,11 +143,11 @@ class AccountMove(models.Model):
                 # TrnEFACECliCod = etree.SubElement(stdTWS, "TrnEFACECliCod")
                 # TrnEFACECliCod.text = factura.partner_id.ref or "-"
                 TrnEFACECliNom = etree.SubElement(stdTWS, "TrnEFACECliNom")
-                TrnEFACECliNom.text = factura.partner_id.name
+                TrnEFACECliNom.text = self.sanitize_xml_text(factura.partner_id.name)
                 TrnEFACECliDir = etree.SubElement(stdTWS, "TrnEFACECliDir")
-                TrnEFACECliDir.text = (factura.partner_id.street or "")[0:140]
+                TrnEFACECliDir.text = self.sanitize_xml_text((factura.partner_id.street or "")[0:140])
                 TrnObs = etree.SubElement(stdTWS, "TrnObs")
-                TrnObs.text = factura.motivo_fel or ""
+                TrnObs.text = self.sanitize_xml_text(factura.motivo_fel or "")
                 TrnEMail = etree.SubElement(stdTWS, "TrnEmail")
                 if factura.partner_id.email:
                     TrnEMail.text = factura.partner_id.email
@@ -156,7 +170,7 @@ class AccountMove(models.Model):
                 TrnCampAd11 = etree.SubElement(stdTWS, "TrnCampAd11")
                 TrnCampAd12 = etree.SubElement(stdTWS, "TrnCampAd12")
                 TrnCampAd13 = etree.SubElement(stdTWS, "TrnCampAd13")
-                TrnCampAd13.text = str(factura.partner_id.name)
+                TrnCampAd13.text = self.sanitize_xml_text(str(factura.partner_id.name))
                 TrnCampAd14 = etree.SubElement(stdTWS, "TrnCampAd14")
                 TrnCampAd14.text = "POR CHEQUÉ RECHAZADO SE COBRARÁ Q. 100.00 POR GASTOS ADMINISTRATIVOS"
                 TrnCampAd15 = etree.SubElement(stdTWS, "TrnCampAd15")
@@ -198,7 +212,7 @@ class AccountMove(models.Model):
                     else:
                         TrnArtCod.text = str(linea.product_id.id)
                     TrnArtNom = etree.SubElement(stdTWSDIt, "TrnArtNom")
-                    TrnArtNom.text = linea.name
+                    TrnArtNom.text = self.sanitize_xml_text(linea.name)
                     TrnCan = etree.SubElement(stdTWSDIt, "TrnCan")
                     TrnCan.text = '{:.6f}'.format(linea.quantity)
                     TrnVUn = etree.SubElement(stdTWSDIt, "TrnVUn")
@@ -260,9 +274,9 @@ class AccountMove(models.Model):
                     stdTWSCam = etree.SubElement(stdTWS, "stdTWSExp")
                     stdTWSCamIt = etree.SubElement(stdTWSCam, "stdTWS.stdTWSExp.stdTWSExpIt")
                     NomConsigODest = etree.SubElement(stdTWSCamIt, "NomConsigODest")
-                    NomConsigODest.text = factura.consignatario_fel.name if factura.consignatario_fel else "-"
+                    NomConsigODest.text = self.sanitize_xml_text(factura.consignatario_fel.name) if factura.consignatario_fel else "-"
                     DirConsigODest = etree.SubElement(stdTWSCamIt, "DirConsigODest")
-                    DirConsigODest.text = factura.consignatario_fel.street or "-" if factura.consignatario_fel else "-"
+                    DirConsigODest.text = self.sanitize_xml_text(factura.consignatario_fel.street or "-") if factura.consignatario_fel else "-"
                     # CodConsigODest = etree.SubElement(stdTWSCamIt, "CodConsigODest")
                     # CodConsigODest.text = factura.consignatario_fel.ref or "-" if factura.consignatario_fel else "-"
                     OtraRef = etree.SubElement(stdTWSCamIt, "OtraRef")
@@ -270,13 +284,13 @@ class AccountMove(models.Model):
                     INCOTERM = etree.SubElement(stdTWSCamIt, "INCOTERM")
                     INCOTERM.text = factura.incoterm_fel or "-"
                     ExpNom = etree.SubElement(stdTWSCamIt, "ExpNom")
-                    ExpNom.text = factura.exportador_fel.name if factura.exportador_fel else "-"
+                    ExpNom.text = self.sanitize_xml_text(factura.exportador_fel.name) if factura.exportador_fel else "-"
                     ExpCod = etree.SubElement(stdTWSCamIt, "ExpCod")
                     ExpCod.text = factura.exportador_fel.ref or "-" if factura.exportador_fel else "-"
                     LugarExpedicion = etree.SubElement(stdTWSCamIt, "LugarExpedicion")
-                    LugarExpedicion.text = factura.lugar_expedicion_fel or "-"
+                    LugarExpedicion.text = self.sanitize_xml_text(factura.lugar_expedicion_fel or "-")
                     PaisConsigODest = etree.SubElement(stdTWSCamIt, "PaisConsigODest")
-                    PaisConsigODest.text = factura.consignatario_fel.country_id.name or "-" if factura.consignatario_fel else "-"
+                    PaisConsigODest.text = self.sanitize_xml_text(factura.consignatario_fel.country_id.name or "-") if factura.consignatario_fel else "-"
 
                 xmls = etree.tostring(stdTWS, xml_declaration=True, encoding="UTF-8")
                 logging.warn(xmls.decode('utf8'))
@@ -289,7 +303,16 @@ class AccountMove(models.Model):
                 resultado = client.service.Execute(factura.company_id.vat, factura.company_id.usuario_fel, factura.company_id.clave_fel, factura.company_id.vat, xmls)
                 logging.warn(resultado)
                 resultadoBytes = bytes(bytearray(resultado, encoding='utf-8'))
-                resultadoXML = etree.XML(resultadoBytes)
+                
+                # Limpiar XML de respuesta escapando & no válidos
+                resultadoBytes_clean = re.sub(b'&(?!amp;|lt;|gt;|quot;|apos;)', b'&amp;', resultadoBytes)
+                
+                try:
+                    resultadoXML = etree.XML(resultadoBytes_clean)
+                except etree.XMLSyntaxError as e:
+                    logging.error("Error parsing XML from Ecofactura: %s", e)
+                    logging.error("Response content: %s", resultadoBytes.decode('utf-8', errors='ignore'))
+                    raise ValidationError(_("Error al procesar respuesta de Ecofactura: %s") % str(e))
 
                 if resultadoXML.xpath("/DTE"):
                     dte = resultadoXML.xpath("/DTE")
@@ -322,7 +345,17 @@ class AccountMove(models.Model):
                 resultado = client.service.Execute(factura.company_id.vat, factura.company_id.usuario_fel, factura.company_id.clave_fel, factura.company_id.vat, factura.firma_fel, factura.motivo_fel)
                 logging.warn(resultado)
                 resultadoBytes = bytes(bytearray(resultado, encoding='utf-8'))
-                resultadoXML = etree.XML(resultadoBytes)
+                
+                # Limpiar XML de respuesta escapando & no válidos
+                resultadoBytes_clean = re.sub(b'&(?!amp;|lt;|gt;|quot;|apos;)', b'&amp;', resultadoBytes)
+                
+                try:
+                    resultadoXML = etree.XML(resultadoBytes_clean)
+                except etree.XMLSyntaxError as e:
+                    logging.error("Error parsing XML from Ecofactura: %s", e)
+                    logging.error("Response content: %s", resultadoBytes.decode('utf-8', errors='ignore'))
+                    raise ValidationError(_("Error al procesar respuesta de Ecofactura: %s") % str(e))
+                
                 factura.pdf_fel = resultadoXML.xpath("/DTE/Pdf")[0].text
                 logging.warn(resultado)
                 

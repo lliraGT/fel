@@ -1,0 +1,20 @@
+<openerp>
+    <data>
+
+        <record model="ir.ui.view" id="l10n_gt_extra.l10n_gt_view_res_partner_form">
+            <field name="name">l10n_gt_extra.l10n_gt_view_partner_form</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="base.view_partner_form"/>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+                <field name="website" position="after">
+                    <field name="pequenio_contribuyente"></field>
+                </field>
+                <field name="vat" position="after">
+                    <field name="cui"></field>
+                </field>
+            </field>
+        </record>
+
+    </data>
+</openerp>
